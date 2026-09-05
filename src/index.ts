@@ -129,6 +129,7 @@ app.put('/api/tasks/:id', async (c) => {
   if (body.title) patch.title = body.title;
   if (body.deadline !== undefined) patch.deadline = body.deadline;
   if (body.ai_required) patch.ai_required = body.ai_required;
+  if (body.status) patch.status = body.status as Task['status'];
 
   db.updateTask(task.id, patch);
   return c.json({ task: db.getTask(task.id) });
@@ -203,6 +204,16 @@ app.post('/api/tasks/:id/create-gmail-draft', async (c) => {
 app.post('/api/tasks/:id/done', (c) => {
   db.updateTask(c.req.param('id'), { status: 'archived' });
   return c.json({ success: true, archived: true });
+});
+
+/** Restore archived task to active list */
+app.post('/api/tasks/:id/restore', (c) => {
+  const task = db.getTask(c.req.param('id'));
+  if (!task) return c.json({ error: 'not found' }, 404);
+  // Reset status based on confidence
+  const status = task.confidence >= 0.85 ? 'ready' : (task.confidence >= 0.6 ? 'clarified' : 'synthesized');
+  db.updateTask(task.id, { status });
+  return c.json({ success: true, restored: true, task: db.getTask(task.id) });
 });
 
 /** Iterate on task with user feedback */

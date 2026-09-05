@@ -254,6 +254,17 @@
         <label>Deadline (YYYY-MM-DD or leave blank)</label>
         <input type="text" id="editDeadline" placeholder="e.g. 2026-09-30">
       </div>
+      <div class="edit-field">
+        <label>Status</label>
+        <select id="editStatus">
+          <option value="synthesized">Synthesized</option>
+          <option value="clarified">Clarified</option>
+          <option value="ready">Ready</option>
+          <option value="drafting">Drafting</option>
+          <option value="done">Done</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
       <div class="actions" style="margin-top:16px;">
         <button class="btn btn-primary" onclick="saveEdit()" style="flex:2;">Save</button>
         <button class="btn btn-ghost" onclick="closeEdit()" style="flex:1;">Cancel</button>
@@ -458,11 +469,39 @@
       else if (action === 'dismiss') loadSurface();
     });
 
+    // Event delegation for all view task rows
+    document.getElementById('taskList').addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      var action = btn.getAttribute('data-action');
+      var id = btn.getAttribute('data-id');
+
+      if (action === 'edit') openEdit(id);
+      else if (action === 'archive') archiveTask(id);
+      else if (action === 'restore') restoreTask(id);
+      // Add more actions as needed
+    });
+
     async function archiveTask(taskId) {
       try {
         await fetch(API + '/api/tasks/' + taskId + '/done', { method: 'POST' });
         toast('Archived');
-        loadSurface();
+        if (document.getElementById('allView').style.display === 'block') {
+          loadAll();
+        } else {
+          loadSurface();
+        }
+      } catch (e) {
+        toast('Error: ' + e.message, 3000);
+        console.error(e);
+      }
+    }
+
+    async function restoreTask(taskId) {
+      try {
+        await fetch(API + '/api/tasks/' + taskId + '/restore', { method: 'POST' });
+        toast('Restored to active list');
+        loadAll(); // refresh the all view
       } catch (e) {
         toast('Error: ' + e.message, 3000);
         console.error(e);
@@ -549,6 +588,7 @@
         document.getElementById('editType').value = task.task_type;
         document.getElementById('editSubject').value = task.subject || '';
         document.getElementById('editDeadline').value = task.deadline || '';
+        document.getElementById('editStatus').value = task.status;
         document.getElementById('editOverlay').classList.add('active');
       } catch (e) {
         console.error(e);
@@ -562,7 +602,8 @@
         domain: document.getElementById('editDomain').value,
         task_type: document.getElementById('editType').value,
         subject: document.getElementById('editSubject').value.trim() || null,
-        deadline: document.getElementById('editDeadline').value.trim() || null
+        deadline: document.getElementById('editDeadline').value.trim() || null,
+        status: document.getElementById('editStatus').value
       };
       try {
         await fetch(API + '/api/tasks/' + currentEditTaskId, {
@@ -571,7 +612,11 @@
           body: JSON.stringify(body)
         });
         toast('Saved');
-        loadSurface();
+        if (document.getElementById('allView').style.display === 'block') {
+          loadAll();
+        } else {
+          loadSurface();
+        }
       } catch (e) {
         toast('Save failed: ' + e.message, 3000);
         console.error(e);
@@ -756,6 +801,12 @@
             '<div>' +
               '<div style="font-weight:500;font-size:14px">' + escapeHtml(t.title) + '</div>' +
               '<small>' + t.domain + ' \u00B7 ' + t.task_type + ' \u00B7 ' + t.status + '</small>' +
+            '</div>' +
+            '<div style="margin-top:8px; display:flex; gap:6px;">' +
+              '<button class="btn" data-action="edit" data-id="' + t.id + '" style="padding:4px 8px; font-size:12px;">Edit</button>' +
+              (t.status === 'archived' ?
+                '<button class="btn" data-action="restore" data-id="' + t.id + '" style="padding:4px 8px; font-size:12px; background:var(--success); color:white;">Restore</button>' :
+                '<button class="btn" data-action="archive" data-id="' + t.id + '" style="padding:4px 8px; font-size:12px; background:var(--danger); color:white;">Archive</button>') +
             '</div>' +
           '</div>';
         }).join('');
