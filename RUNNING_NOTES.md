@@ -250,4 +250,32 @@ The system now:
 
 ---
 
-**Notes updated**: 2025‑09‑04
+## 2025‑09‑05 – Edit & Restore Archived Tasks
+
+### Problem
+User wanted to edit completed (archived) tasks and add them back to the main to‑do list.
+
+### Solution
+1. **Added status field to edit overlay** – any task can now have its status changed directly.
+2. **New restore endpoint** `POST /api/tasks/:id/restore` – resets an archived task to an active status (ready/clarified/synthesized based on confidence).
+3. **Enhanced “See all” view** – each task row now includes:
+   - **Edit** button – opens the edit overlay (works for any task, including archived)
+   - **Archive/Restore** button – context‑aware:
+     - If task is archived → “Restore” button (green, calls restore endpoint)
+     - If task is active → “Archive” button (red, calls existing archive endpoint)
+4. **Event delegation for the all‑view** – buttons in the “See all” list are now functional.
+5. **Smart UI refresh** – after editing/archiving/restoring, the UI refreshes the currently visible view (surface or all‑view).
+
+### How to use
+- Click **See all** to view all tasks (including archived).
+- Click **Edit** on any task to modify its title, domain, type, subject, deadline, or status.
+- Click **Restore** on an archived task to bring it back to the active list.
+- Click **Archive** on an active task to move it to the archive.
+
+### Technical changes
+- `src/index.ts` – added restore endpoint, extended PUT endpoint to accept status.
+- `public/index.html` – added status dropdown in edit overlay, updated `loadAll()` to render buttons, added event listener for all‑view, updated `saveEdit()` and `archiveTask()` to refresh the correct view.
+
+---
+
+**Notes updated**: 2025‑09‑05
