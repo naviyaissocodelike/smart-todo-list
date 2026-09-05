@@ -265,6 +265,9 @@
           <option value="archived">Archived</option>
         </select>
       </div>
+      <div id="editArchivedNote" style="display:none; background:rgba(245,166,35,0.1); border:1px solid var(--accent); border-radius:8px; padding:10px; margin-top:10px; font-size:13px; color:#f5a623;">
+        ⚠️ This task is archived. Change the status above to make it active again.
+      </div>
       <div class="actions" style="margin-top:16px;">
         <button class="btn btn-primary" onclick="saveEdit()" style="flex:2;">Save</button>
         <button class="btn btn-ghost" onclick="closeEdit()" style="flex:1;">Cancel</button>
@@ -501,7 +504,11 @@
       try {
         await fetch(API + '/api/tasks/' + taskId + '/restore', { method: 'POST' });
         toast('Restored to active list');
-        loadAll(); // refresh the all view
+        if (document.getElementById('allView').style.display === 'block') {
+          loadAll();
+        } else {
+          loadSurface();
+        }
       } catch (e) {
         toast('Error: ' + e.message, 3000);
         console.error(e);
@@ -589,6 +596,12 @@
         document.getElementById('editSubject').value = task.subject || '';
         document.getElementById('editDeadline').value = task.deadline || '';
         document.getElementById('editStatus').value = task.status;
+        // Show note if task is archived
+        if (task.status === 'archived') {
+          document.getElementById('editArchivedNote').style.display = 'block';
+        } else {
+          document.getElementById('editArchivedNote').style.display = 'none';
+        }
         document.getElementById('editOverlay').classList.add('active');
       } catch (e) {
         console.error(e);

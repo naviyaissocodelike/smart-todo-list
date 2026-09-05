@@ -90,7 +90,7 @@ app.post('/api/ingestions/:id/synthesize', async (c) => {
 
 app.get('/api/surface', (c) => {
   const tasks = db.getTasks().filter(t =>
-    ['synthesized', 'clarified', 'ready', 'drafting'].includes(t.status)
+    ['synthesized', 'clarified', 'ready', 'drafting', 'done'].includes(t.status)
   );
   const sorted = tasks.sort((a, b) => scoreTask(b) - scoreTask(a));
   return c.json({ task: sorted[0] || null, count: sorted.length });
