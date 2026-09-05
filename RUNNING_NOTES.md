@@ -278,4 +278,30 @@ User wanted to edit completed (archived) tasks and add them back to the main to�
 
 ---
 
+## 2025‑09‑05 – Fix: Restored Tasks Not Appearing in Main List
+
+### Problem
+User reported that restored tasks "are available but they dont show up in the main list of action items."
+
+### Root Causes
+1. `restoreTask()` only refreshed the "See all" view, not the main surface view.
+2. Tasks manually marked as "done" status were filtered out of the surface view (`'done'` not in filter).
+3. When editing archived tasks, users might not realize they need to change the status from "archived" to an active status.
+
+### Solutions
+1. **Updated view‑refresh logic in `restoreTask()`** – now refreshes the currently visible view (surface or all‑view), matching the behavior of `archiveTask()` and `saveEdit()`.
+2. **Added `'done'` to surface filter** – tasks marked as "done" will now appear in the main list (with low priority).
+3. **Added warning note in edit overlay** – when editing an archived task, a yellow note appears: "⚠️ This task is archived. Change the status above to make it active again."
+
+### Technical details
+- `src/index.ts` – updated surface filter to include `'done'` status.
+- `public/index.html` – updated `restoreTask()` with conditional view refresh; added archived‑task warning note in edit overlay.
+
+### Expected behavior now
+- Clicking **Restore** on an archived task immediately refreshes the correct view and makes the task appear in the main list (if that view is visible).
+- Tasks marked as **done** (via edit) appear in the main list (with low priority).
+- When editing archived tasks, a clear warning reminds users to change the status if they want the task to become active.
+
+---
+
 **Notes updated**: 2025‑09‑05
