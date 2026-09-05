@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Spark</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --card: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #e5e5e5;
+      --muted: #888;
+      --accent: #f5a623;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --district: #a855f7;
+      --tala: #3b82f6;
+      --job: #10b981;
+      --personal: #6b7280;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { width: 100%; max-width: 420px; }
+    .capture-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      transition: border-color 0.2s;
+    }
+    .capture-box:focus-within { border-color: var(--accent); }
+    .capture-box textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 15px;
+      resize: none;
+      outline: none;
+      min-height: 24px;
+      max-height: 160px;
+      line-height: 1.4;
+    }
+    .capture-box button {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 14px;
+    }
+    .capture-box button:active { transform: scale(0.96); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      position: relative;
+      animation: fadeIn 0.25s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .badges { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-domain-district { background: rgba(168,85,247,0.15); color: var(--district); }
+    .badge-domain-tala { background: rgba(59,130,246,0.15); color: var(--tala); }
+    .badge-domain-job { background: rgba(16,185,129,0.15); color: var(--job); }
+    .badge-domain-personal { background: rgba(107,114,128,0.15); color: var(--personal); }
+    .badge-type { background: rgba(245,166,35,0.12); color: var(--accent); }
+    .task-title { font-size: 20px; font-weight: 600; line-height: 1.3; margin-bottom: 8px; }
+    .task-meta { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+    .task-meta span + span::before { content: ' \00B7 '; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .actions .btn {
+      flex: 1;
+      min-width: 72px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .actions .btn:hover { background: rgba(255,255,255,0.05); }
+    .actions .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    .actions .btn-primary:hover { opacity: 0.9; }
+    .actions .btn-ghost { color: var(--muted); }
+    .actions .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .draft-box {
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .draft-box h4 { font-size: 12px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.05em; }
+    .draft-subject { font-weight: 600; margin-bottom: 8px; font-size: 15px; }
+    .draft-body { font-size: 14px; line-height: 1.55; white-space: pre-wrap; color: #ccc; }
+    .empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .loading { opacity: 0.5; pointer-events: none; }
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100;
+    }
+    .overlay.active { display: flex; }
+    .overlay-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px; width: 100%; max-width: 380px; animation: fadeIn 0.2s ease-out; }
+    .overlay-card h3 { margin-bottom: 8px; font-size: 18px; }
+    .overlay-card p { color: var(--muted); font-size: 14px; margin-bottom: 20px; line-height: 1.4; }
+    .options { display: flex; flex-direction: column; gap: 8px; }
+    .option {
+      padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border);
+      background: transparent; color: var(--text); text-align: left; font-size: 14px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .option:hover { background: rgba(255,255,255,0.05); border-color: var(--accent); }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .header h1 { font-size: 18px; letter-spacing: -0.02em; }
+    .header a { color: var(--muted); font-size: 13px; text-decoration: none; cursor: pointer; }
+    .header a:hover { color: var(--text); }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120px);
+      background: var(--card); border: 1px solid var(--border); padding: 10px 22px; border-radius: 24px;
+      font-size: 13px; opacity: 0; transition: all 0.35s cubic-bezier(0.16,1,0.3,1); pointer-events: none; z-index: 200;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .all-view { display: none; }
+    .task-row {
+      padding: 14px 16px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 8px;
+    }
+    .task-row small { color: var(--muted); display: block; margin-top: 2px; }
+    .warning-banner {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .warning-banner strong { color: #fff; display: block; margin-bottom: 4px; }
+    .warning-banner code {
+      background: rgba(0,0,0,0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #fff;
+    }
+    .failed-card { border-color: rgba(239,68,68,0.3) !important; }
+    .failed-card .task-title { color: #fca5a5; }
+    .retry-btn { color: #f5a623 !important; border-color: #f5a623 !important; }
+    .edit-field { margin-bottom: 12px; }
+    .edit-field label { display: block; font-size: 11px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.05em; }
+    .edit-field select, .edit-field input {
+      width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 14px; outline: none;
+    }
+    .edit-field select:focus, .edit-field input:focus { border-color: var(--accent); }
+    .feedback-textarea {
+      width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); padding: 10px; font-size: 14px; min-height: 80px; resize: vertical;
+      outline: none; font-family: inherit; line-height: 1.4;
+    }
+    .feedback-textarea:focus { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="container">
+  <div class="header">
+    <h1>Spark</h1>
+    <div>
+      <a onclick="openSettings()" style="margin-right:12px;">Settings</a>
+      <a onclick="toggleAll()" id="allToggle">See all</a>
+    </div>
+  </div>
+
+    <div id="configBanner"></div>
+
+    <div class="capture-box">
+      <textarea id="captureInput" placeholder="What do you need to do?" rows="1" oninput="autoResize(this)" onkeydown="onKeydown(event)"></textarea>
+      <button onclick="capture()">Capture</button>
+    </div>
+
+    <div id="surfaceView">
+      <div id="taskCard"></div>
+    </div>
+
+    <div id="allView" class="all-view">
+      <div id="taskList"></div>
+    </div>
+  </div>
+
+  <div id="editOverlay" class="overlay">
+    <div class="overlay-card" style="max-width:400px;padding-bottom:20px;">
+      <h3>Edit task</h3>
+      <div class="edit-field">
+        <label>Title</label>
+        <input type="text" id="editTitle" placeholder="Task title">
+      </div>
+      <div class="edit-field">
+        <label>Domain</label>
+        <select id="editDomain">
+          <option value="District Angels">District Angels</option>
+          <option value="Tala">Tala</option>
+          <option value="Job Search">Job Search</option>
+          <option value="Personal Misc">Personal Misc</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label>Type</label>
+        <select id="editType">
+          <option value="Draft">Draft</option>
+          <option value="Research">Research</option>
+          <option value="Nothing">Nothing</option>
+          <option value="Recommend Alt">Recommend Alt</option>
+          <option value="Review">Review</option>
+          <option value="Create/Consolidate">Create/Consolidate</option>
+          <option value="Remind">Remind</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label>Subject / To</label>
+        <input type="text" id="editSubject" placeholder="Person's name">
+      </div>
+      <div class="edit-field">
+        <label>Deadline (YYYY-MM-DD or leave blank)</label>
+        <input type="text" id="editDeadline" placeholder="e.g. 2026-09-30">
+      </div>
+      <div class="actions" style="margin-top:16px;">
+        <button class="btn btn-primary" onclick="saveEdit()" style="flex:2;">Save</button>
+        <button class="btn btn-ghost" onclick="closeEdit()" style="flex:1;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="feedbackOverlay" class="overlay">
+    <div class="overlay-card" style="max-width:420px;">
+      <h3>Iterate on task</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Tell the AI what's wrong or what to change.</p>
+      <textarea class="feedback-textarea" id="feedbackInput" placeholder="This should be about District Angels, not Tala. Dave is my co-founder there."></textarea>
+      <div class="actions" style="margin-top:16px;">
+        <button class="btn btn-primary" onclick="submitFeedback()" style="flex:2;">Re-synthesize</button>
+        <button class="btn btn-ghost" onclick="closeFeedback()" style="flex:1;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="reiterateOverlay" class="overlay">
+    <div class="overlay-card">
+      <h3>Quick question</h3>
+      <p id="reiterateQuestion"></p>
+      <div id="reiterateOptions" class="options"></div>
+    </div>
+  </div>
+
+  <div id="settingsOverlay" class="overlay">
+    <div class="overlay-card" style="max-width:420px;">
+      <h3>Settings</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.5;">
+        The AI learns from your edits and feedback in two ways:<br>
+        1. <strong>context.md</strong> – static rules you write (edit the file manually).<br>
+        2. <strong>Learning from edits</strong> – auto‑compile your corrections into context.
+      </p>
+      <div class="actions" style="flex-direction:column;gap:12px;">
+        <button class="btn btn-primary" onclick="learnFromEdits()">Learn from my edits</button>
+        <button class="btn" onclick="viewContext()">View context.md</button>
+        <button class="btn btn-ghost" onclick="closeSettings()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const API = window.location.origin;
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    }
+
+    function onKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        capture();
+      }
+    }
+
+    function toast(msg, duration) {
+      duration = duration || 2000;
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(function() { t.classList.remove('show'); }, duration);
+    }
+
+    async function capture() {
+      var input = document.getElementById('captureInput');
+      var raw = input.value.trim();
+      if (!raw) return;
+
+      input.disabled = true;
+      input.parentElement.classList.add('loading');
+
+      try {
+        var res = await fetch(API + '/api/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw: raw, mode: 'text' })
+        });
+        var data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        input.value = '';
+        input.style.height = 'auto';
+        toast('Captured');
+
+        var synthRes = await fetch(API + '/api/ingestions/' + data.ingestion.id + '/synthesize', { method: 'POST' });
+        var synthData = await synthRes.json();
+        if (synthData.error) {
+          toast('AI failed: ' + synthData.error, 4000);
+          renderFailedIngestion(data.ingestion, synthData.error);
+          return;
+        }
+        loadSurface();
+      } catch (e) {
+        toast('Error: ' + e.message, 3000);
+        console.error(e);
+      } finally {
+        input.disabled = false;
+        input.parentElement.classList.remove('loading');
+        input.focus();
+      }
+    }
+
+    function renderFailedIngestion(ingestion, error) {
+      var card = document.getElementById('taskCard');
+      card.innerHTML =
+        '<div class="card failed-card">' +
+          '<div class="badges">' +
+            '<span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">Uncategorized</span>' +
+            '<span class="badge" style="background:rgba(245,166,35,0.12);color:var(--accent)">Needs Setup</span>' +
+          '</div>' +
+          '<div class="task-title">' + escapeHtml(ingestion.raw) + '</div>' +
+          '<div class="task-meta"><span>Captured ' + new Date(ingestion.timestamp).toLocaleTimeString() + '</span></div>' +
+          '<div style="background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#fca5a5;line-height:1.5;">' +
+            '<strong style="color:#fff">Error:</strong> ' + escapeHtml(error) +
+          '</div>' +
+          '<div class="actions">' +
+            '<button class="btn retry-btn" data-action="retry" data-id="' + ingestion.id + '">Retry</button>' +
+            '<button class="btn btn-ghost" data-action="dismiss">Dismiss</button>' +
+          '</div>' +
+        '</div>';
+    }
+
+    function renderTask(task, totalCount) {
+      var card = document.getElementById('taskCard');
+      if (!task) {
+        card.innerHTML = '<div class="empty">All caught up 🎉<br><small>' + (totalCount > 0 ? totalCount + ' tasks snoozed or scheduled.' : 'Nothing in your world right now.') + '</small></div>';
+        return;
+      }
+
+      var domainSlug = task.domain.toLowerCase().replace(/[^a-z]/g, '');
+      var domainClass = 'badge-domain-' + domainSlug;
+      var deadlineText = task.deadline ? new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+      var subjectText = task.subject ? 'To: ' + task.subject : '';
+      var confText = task.confidence ? 'Confidence ' + Math.round(task.confidence * 100) + '%' : '';
+
+      var actionsHtml = '';
+      if (task.draft) {
+        actionsHtml += '<button class="btn btn-primary" data-action="gmail" data-id="' + task.id + '">Create Gmail Draft</button>';
+      } else if (task.task_type === 'Draft') {
+        actionsHtml += '<button class="btn btn-primary" data-action="draft" data-id="' + task.id + '">Generate Draft</button>';
+      }
+      actionsHtml += '<button class="btn btn-ghost" data-action="archive" data-id="' + task.id + '">Archive</button>';
+      actionsHtml += '<button class="btn btn-ghost" data-action="snooze" data-id="' + task.id + '">Snooze</button>';
+      actionsHtml += '<button class="btn" data-action="edit" data-id="' + task.id + '">Edit</button>';
+      actionsHtml += '<button class="btn" data-action="iterate" data-id="' + task.id + '">Iterate</button>';
+      if (task.status === 'synthesized' || task.status === 'clarified') {
+        actionsHtml += '<button class="btn" data-action="clarify" data-id="' + task.id + '">Clarify</button>';
+      }
+
+      var draftHtml = '';
+      if (task.draft) {
+        draftHtml =
+          '<div class="draft-box">' +
+            '<h4>AI Draft</h4>' +
+            '<div class="draft-subject">' + escapeHtml(task.draft.subject) + '</div>' +
+            '<div class="draft-body">' + escapeHtml(task.draft.body) + '</div>' +
+          '</div>';
+      }
+
+      card.innerHTML =
+        '<div class="card">' +
+          '<div class="badges">' +
+            '<span class="badge ' + domainClass + '">' + task.domain + '</span>' +
+            '<span class="badge badge-type">' + task.task_type + '</span>' +
+            (task.ai_required === 'true' ? '<span class="badge" style="background:rgba(34,197,94,0.12);color:var(--success)">AI Ready</span>' : '') +
+          '</div>' +
+          '<div class="task-title">' + escapeHtml(task.title) + '</div>' +
+          '<div class="task-meta">' +
+            (deadlineText ? '<span>' + deadlineText + '</span>' : '') +
+            (subjectText ? '<span>' + subjectText + '</span>' : '') +
+            (confText ? '<span>' + confText + '</span>' : '') +
+          '</div>' +
+          '<div class="actions">' + actionsHtml + '</div>' +
+          draftHtml +
+        '</div>';
+
+      if (task.status === 'synthesized' && task.confidence < 0.7) {
+        setTimeout(function() { reiterate(task.id); }, 400);
+      }
+    }
+
+    // Event delegation for all task card buttons
+    document.getElementById('taskCard').addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      var action = btn.getAttribute('data-action');
+      var id = btn.getAttribute('data-id');
+
+      if (action === 'archive') archiveTask(id);
+      else if (action === 'snooze') snoozeTask(id);
+      else if (action === 'edit') openEdit(id);
+      else if (action === 'iterate') openIterate(id);
+      else if (action === 'clarify') reiterate(id);
+      else if (action === 'draft') generateDraft(id);
+      else if (action === 'gmail') createGmailDraft(id);
+      else if (action === 'retry') retrySynthesize(id);
+      else if (action === 'dismiss') loadSurface();
+    });
+
+    async function archiveTask(taskId) {
+      try {
+        await fetch(API + '/api/tasks/' + taskId + '/done', { method: 'POST' });
+        toast('Archived');
+        loadSurface();
+      } catch (e) {
+        toast('Error: ' + e.message, 3000);
+        console.error(e);
+      }
+    }
+
+    async function snoozeTask(taskId) {
+      try {
+        var tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+        await fetch(API + '/api/tasks/' + taskId + '/answer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deadline: tomorrow })
+        });
+        toast('Snoozed to tomorrow');
+        loadSurface();
+      } catch (e) {
+        toast('Error: ' + e.message, 3000);
+        console.error(e);
+      }
+    }
+
+    async function generateDraft(taskId) {
+      toast('Writing draft...');
+      try {
+        var res = await fetch(API + '/api/tasks/' + taskId + '/draft', { method: 'POST' });
+        var data = await res.json();
+        if (data.error) { toast(data.error, 3000); return; }
+        loadSurface();
+      } catch (e) {
+        toast('Error: ' + e.message, 3000);
+        console.error(e);
+      }
+    }
+
+    async function createGmailDraft(taskId) {
+      var to = prompt('Recipient email address:');
+      if (!to) return;
+      toast('Creating Gmail draft...');
+      try {
+        var res = await fetch(API + '/api/tasks/' + taskId + '/create-gmail-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: to })
+        });
+        var data = await res.json();
+        if (data.error) { toast(data.error, 3000); return; }
+        toast('Draft created in Gmail!');
+        loadSurface();
+      } catch (e) {
+        toast('Error: ' + e.message, 3000);
+        console.error(e);
+      }
+    }
+
+    async function retrySynthesize(ingestionId) {
+      toast('Retrying...');
+      try {
+        var res = await fetch(API + '/api/ingestions/' + ingestionId + '/synthesize', { method: 'POST' });
+        var data = await res.json();
+        if (data.error) {
+          toast('Still failing: ' + data.error, 4000);
+          return;
+        }
+        loadSurface();
+      } catch (e) {
+        toast('Retry failed: ' + e.message, 4000);
+        console.error(e);
+      }
+    }
+
+    // Edit overlay
+    var currentEditTaskId = null;
+
+    async function openEdit(taskId) {
+      try {
+        var res = await fetch(API + '/api/tasks');
+        var data = await res.json();
+        var task = data.tasks.find(function(t) { return t.id === taskId; });
+        if (!task) return;
+        currentEditTaskId = taskId;
+        document.getElementById('editTitle').value = task.title;
+        document.getElementById('editDomain').value = task.domain;
+        document.getElementById('editType').value = task.task_type;
+        document.getElementById('editSubject').value = task.subject || '';
+        document.getElementById('editDeadline').value = task.deadline || '';
+        document.getElementById('editOverlay').classList.add('active');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function saveEdit() {
+      document.getElementById('editOverlay').classList.remove('active');
+      var body = {
+        title: document.getElementById('editTitle').value,
+        domain: document.getElementById('editDomain').value,
+        task_type: document.getElementById('editType').value,
+        subject: document.getElementById('editSubject').value.trim() || null,
+        deadline: document.getElementById('editDeadline').value.trim() || null
+      };
+      try {
+        await fetch(API + '/api/tasks/' + currentEditTaskId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        toast('Saved');
+        loadSurface();
+      } catch (e) {
+        toast('Save failed: ' + e.message, 3000);
+        console.error(e);
+      }
+    }
+
+    function closeEdit() {
+      document.getElementById('editOverlay').classList.remove('active');
+    }
+
+    // Feedback / Iterate overlay
+    var currentFeedbackTaskId = null;
+
+    function openIterate(taskId) {
+      currentFeedbackTaskId = taskId;
+      document.getElementById('feedbackInput').value = '';
+      document.getElementById('feedbackOverlay').classList.add('active');
+    }
+
+    async function submitFeedback() {
+      var feedback = document.getElementById('feedbackInput').value.trim();
+      if (!feedback) return;
+      document.getElementById('feedbackOverlay').classList.remove('active');
+      toast('Re-synthesizing...');
+      try {
+        var res = await fetch(API + '/api/tasks/' + currentFeedbackTaskId + '/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ feedback: feedback })
+        });
+        var data = await res.json();
+        if (data.error) { toast(data.error, 3000); return; }
+        toast('Updated with feedback');
+        loadSurface();
+      } catch (e) {
+        toast('Feedback failed: ' + e.message, 3000);
+        console.error(e);
+      }
+    }
+
+    function closeFeedback() {
+      document.getElementById('feedbackOverlay').classList.remove('active');
+    }
+
+    // Reiterate overlay
+    var currentReiterateTaskId = null;
+
+    async function reiterate(taskId) {
+      currentReiterateTaskId = taskId;
+      try {
+        var res = await fetch(API + '/api/tasks/' + taskId + '/reiterate');
+        var data = await res.json();
+        if (data.error) { toast(data.error, 3000); return; }
+
+        document.getElementById('reiterateQuestion').textContent = data.question;
+        var optsDiv = document.getElementById('reiterateOptions');
+        optsDiv.innerHTML = '';
+        data.options.forEach(function(opt) {
+          var btn = document.createElement('button');
+          btn.className = 'option';
+          btn.textContent = opt;
+          btn.onclick = function() { submitReiterate(opt); };
+          optsDiv.appendChild(btn);
+        });
+        var otherBtn = document.createElement('button');
+        otherBtn.className = 'option';
+        otherBtn.textContent = 'Something else...';
+        otherBtn.onclick = function() {
+          var ans = prompt('Your answer:');
+          if (ans) submitReiterate(ans);
+        };
+        optsDiv.appendChild(otherBtn);
+
+        document.getElementById('reiterateOverlay').classList.add('active');
+      } catch (e) {
+        toast('Error: ' + e.message, 3000);
+        console.error(e);
+      }
+    }
+
+    async function submitReiterate(answer) {
+      document.getElementById('reiterateOverlay').classList.remove('active');
+      try {
+        await fetch(API + '/api/tasks/' + currentReiterateTaskId + '/answer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answer_text: answer })
+        });
+        toast('Updated');
+        loadSurface();
+      } catch (e) {
+        toast('Error: ' + e.message, 3000);
+        console.error(e);
+      }
+    }
+
+    // Settings overlay
+    function openSettings() {
+      document.getElementById('settingsOverlay').classList.add('active');
+    }
+    function closeSettings() {
+      document.getElementById('settingsOverlay').classList.remove('active');
+    }
+    async function learnFromEdits() {
+      toast('Compiling your edits into context...');
+      try {
+        var res = await fetch(API + '/api/compile-priors', { method: 'POST' });
+        var data = await res.json();
+        if (data.error) { toast(data.error, 4000); return; }
+        toast('Learned from ' + data.lineCount + ' lines compiled');
+        closeSettings();
+      } catch (e) {
+        toast('Failed: ' + e.message, 3000);
+        console.error(e);
+      }
+    }
+    function viewContext() {
+      alert('Open the file context.md in the project folder to edit your voice and preferences.\n\nRestart the server after editing.');
+    }
+
+    async function loadSurface() {
+      try {
+        var res = await fetch(API + '/api/surface');
+        var data = await res.json();
+        renderTask(data.task, data.count);
+      } catch (e) {
+        document.getElementById('taskCard').innerHTML = '<div class="empty">Offline. Is the server running?</div>';
+        console.error(e);
+      }
+    }
+
+    async function checkConfig() {
+      try {
+        var res = await fetch(API + '/api/config');
+        var data = await res.json();
+        var banner = document.getElementById('configBanner');
+        if (!data.hasOpenRouter) {
+          banner.innerHTML =
+            '<div class="warning-banner">' +
+              '<strong>AI is offline</strong>' +
+              'Set your OpenRouter API key in <code>.env</code>.' +
+              '<br><br>' +
+              '<a href="#" onclick="showSetupHelp();return false;" style="color:#f5a623;text-decoration:underline;">How to get a key &rarr;</a>' +
+            '</div>';
+        } else {
+          banner.innerHTML = '';
+        }
+      } catch (e) {}
+    }
+
+    function showSetupHelp() {
+      alert('How to get your OpenRouter API key:\n\n1. Go to https://openrouter.ai/keys\n2. Click "Create Key"\n3. Copy the key (starts with sk-or-v1-)\n4. Open .env in this project folder\n5. Replace the placeholder with your real key\n6. Restart the server (Ctrl+C then bun run dev)');
+    }
+
+    function toggleAll() {
+      var surface = document.getElementById('surfaceView');
+      var all = document.getElementById('allView');
+      var link = document.getElementById('allToggle');
+      if (all.style.display === 'block') {
+        all.style.display = 'none';
+        surface.style.display = 'block';
+        link.textContent = 'See all';
+      } else {
+        surface.style.display = 'none';
+        all.style.display = 'block';
+        link.textContent = 'Back';
+        loadAll();
+      }
+    }
+
+    async function loadAll() {
+      try {
+        var res = await fetch(API + '/api/tasks');
+        var data = await res.json();
+        var list = document.getElementById('taskList');
+        if (!data.tasks.length) {
+          list.innerHTML = '<div class="empty">No tasks yet.</div>';
+          return;
+        }
+        list.innerHTML = data.tasks.map(function(t) {
+          return '<div class="task-row">' +
+            '<div>' +
+              '<div style="font-weight:500;font-size:14px">' + escapeHtml(t.title) + '</div>' +
+              '<small>' + t.domain + ' \u00B7 ' + t.task_type + ' \u00B7 ' + t.status + '</small>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      } catch (e) {
+        document.getElementById('taskList').innerHTML = '<div class="empty">Failed to load tasks.</div>';
+        console.error(e);
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    loadSurface();
+    checkConfig();
+    document.getElementById('captureInput').focus();
+  </script>
+</body>
+</html>

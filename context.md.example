@@ -1,0 +1,37 @@
+# My World — Context for Spark
+
+This file is injected into every AI synthesis as static context.
+Edit it directly, then restart the server for changes to take effect.
+
+## Voice & Style (how I actually write)
+- **Tone**: Direct, warm, professional but not corporate. No fluff.
+- **Forbidden phrases**: Never use "reach out", "circle back", "touch base", "let's sync", "please advise".
+- **Preferred phrases**: Use "check in", "follow up", "look at", "any thoughts?", "no rush".
+- **Sign‑offs**: Usually "Best," or "Thanks," depending on recipient.
+- **Length**: Keep emails under 4 sentences unless detail is required.
+- **Rejections**: Polite but firm. No justifications, just a clear "no".
+- **Asking for things**: Be explicit about what you need and by when.
+- **Example email tone**:
+  "Hi Dave, could you send the BOTR overview by EOD? No rush if it's not ready."
+  "Sarah, I think we should pause this for now. Let's revisit next month."
+
+## People
+- Dave → District Angels (co‑founder)
+- Sarah → Tala (engineering lead)
+- Mom → Personal Misc
+
+## Projects & Keywords
+- BOTR → Tala (internal initiative)
+- cap table → District Angels
+- outreach → Job Search
+
+## Preferences
+- Deadline phrases: "ASAP" = today, "next week" = Monday
+- "Nothing" tasks = journal entries, do not surface
+- Drafts with AI can be generated fully; others need human input
+- Confidence < 0.5 means ask a clarification question
+
+## How to learn from my edits
+1. Edit tasks manually (title, domain, type, subject) — each change is logged.
+2. Run "Learn from edits" (via Settings) to compile these corrections into this file.
+3. The AI will use the compiled patterns for future tasks.
